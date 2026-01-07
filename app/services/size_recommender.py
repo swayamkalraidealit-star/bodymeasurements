@@ -119,8 +119,14 @@ class SizeRecommender:
             # Special handling for height_range
             if measurement_name == 'height' and size_spec.height_range:
                 min_height, max_height = size_spec.height_range
+                range_center = (min_height + max_height) / 2
+                
                 if min_height <= user_value <= max_height:
-                    score = 100
+                    # Within range - score based on distance from center
+                    # Perfect 100 at center, decreasing to 95 at edges
+                    range_span = max_height - min_height
+                    distance_from_center = abs(user_value - range_center)
+                    score = 100 - (distance_from_center / (range_span / 2)) * 5
                     fit_analysis['height'] = "Perfect fit"
                 else:
                     # Calculate how far outside range
@@ -138,9 +144,23 @@ class SizeRecommender:
                 tolerance = self.tolerance.get(measurement_name, 3)
                 
                 if diff <= tolerance:
-                    # Within tolerance - perfect fit
-                    score = 100
-                    fit_analysis[measurement_name] = "Perfect fit"
+                    # Within tolerance - score decreases as diff increases
+                    # Perfect 100 at 0cm diff, decreasing to 90 at tolerance edge
+                    # This ensures closer matches get higher scores
+                    score = 100 - (diff / tolerance) * 10
+                    
+                    # More nuanced fit analysis
+                    if diff == 0:
+                        fit_analysis[measurement_name] = "Perfect fit"
+                    elif diff < tolerance * 0.33:  # Very close (within 1cm for 3cm tolerance)
+                        fit_analysis[measurement_name] = "Excellent fit"
+                    elif diff < tolerance * 0.67:  # Close (within 2cm for 3cm tolerance)
+                        fit_analysis[measurement_name] = "Great fit"
+                    else:  # Within tolerance but on the edge
+                        if user_value > garment_value:
+                            fit_analysis[measurement_name] = f"Good fit (snug)"
+                        else:
+                            fit_analysis[measurement_name] = f"Good fit (relaxed)"
                 else:
                     # Outside tolerance - calculate penalty
                     excess = diff - tolerance

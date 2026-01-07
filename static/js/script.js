@@ -2,6 +2,41 @@
  * Body Measurement App - Frontend Logic
  */
 
+// ===============================
+// Premium Page Loading Animation
+// ===============================
+
+// Add smooth fade-in on page load
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+        document.body.style.transition = 'opacity 0.5s ease';
+        document.body.style.opacity = '1';
+    }, 100);
+});
+
+// Authentication
+const auth = {
+    token: localStorage.getItem('auth_token'),
+    user: JSON.parse(localStorage.getItem('user') || 'null')
+};
+
+// Check authentication
+function checkAuth() {
+    if (!auth.token || !auth.user) {
+        window.location.href = '/';
+        return false;
+    }
+    return true;
+}
+
+// Logout function
+function logout() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+}
+
 // State management
 const state = {
     frontImage: null,
@@ -199,14 +234,21 @@ async function calculateMeasurements() {
             units: elements.unitsSelect.value
         };
 
-        // Send request to API
+        // Send request to API with auth token
         const response = await fetch('/api/measurements/calculate', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${auth.token}`
             },
             body: JSON.stringify(requestData)
         });
+
+        // Check for unauthorized
+        if (response.status === 401) {
+            logout();
+            return;
+        }
 
         if (!response.ok) {
             const error = await response.json();
@@ -406,6 +448,22 @@ function hideError() {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+    // Check authentication
+    if (!checkAuth()) {
+        return;
+    }
+    
+    // Display user info
+    displayUserInfo();
+    
     initEventListeners();
     validateForm();
 });
+
+// Display user info in header
+function displayUserInfo() {
+    const userInfo = document.getElementById('userInfo');
+    if (userInfo && auth.user) {
+        userInfo.textContent = auth.user.username || auth.user.email;
+    }
+}

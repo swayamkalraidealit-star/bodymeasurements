@@ -1,0 +1,106 @@
+/* Premium Welcome Overlay Animation */
+.welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0F0F23 0%, #1a0a2e 50%, #0F0F23 100%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeOutOverlay 1s ease 2s forwards;
+    pointer-events: none;
+}
+
+.welcome-content {
+    text-align: center;
+    animation: welcomeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.welcome-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 2rem;
+    animation: logoFloat 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.6));
+}
+
+.welcome-title {
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #8B5CF6, #EC4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+    letter-spacing: -1px;
+}
+
+.welcome-subtitle {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 2px;
+    animation: fadeIn 1s ease 0.5s both;
+}
+
+@keyframes fadeOutOverlay {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+@keyframes welcomeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes logoFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Enhanced Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+}
+
+/* Selection styling */
+::selection {
+    background: rgba(139, 92, 246, 0.3);
+    color: white;
+}
+
+::-moz-selection {
+    background: rgba(139, 92, 246, 0.3);
+    color: white;
+}

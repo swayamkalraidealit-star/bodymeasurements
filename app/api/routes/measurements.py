@@ -105,7 +105,8 @@ async def calculate_measurements(request: MeasurementRequest):
             front_landmarks=front_landmarks,
             side_landmarks=side_landmarks,
             calibration_height_cm=request.calibration_height,
-            units=request.units
+            units=request.units,
+            gender=request.gender
         )
         
         if not measurements_dict:
