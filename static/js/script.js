@@ -73,7 +73,10 @@ const elements = {
     exportBtn: document.getElementById('exportBtn'),
     sizeRecommendationSection: document.getElementById('sizeRecommendationSection'),
     garmentCategorySelect: document.getElementById('garmentCategorySelect'),
-    sizeRecGrid: document.getElementById('sizeRecGrid')
+    sizeRecGrid: document.getElementById('sizeRecGrid'),
+    historySection: document.getElementById('historySection'),
+    historyList: document.getElementById('historyList'),
+    refreshHistoryBtn: document.getElementById('refreshHistoryBtn')
 };
 
 // Initialize event listeners
@@ -114,6 +117,21 @@ function initEventListeners() {
 
     // Load garment categories
     loadGarmentCategories();
+
+    // Refresh history button
+    elements.refreshHistoryBtn.addEventListener('click', fetchHistory);
+
+    // Initial history fetch
+    fetchHistory();
+
+    // Navbar active state handling
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+        });
+    });
 }
 
 // File handling
@@ -271,6 +289,9 @@ async function calculateMeasurements() {
 
         // Display results
         displayResults(data);
+
+        // Refresh history after calculation
+        fetchHistory();
 
     } catch (error) {
         console.error('Error:', error);
@@ -444,6 +465,79 @@ function showError(message) {
 
 function hideError() {
     elements.errorMessage.style.display = 'none';
+}
+
+// History fetching
+async function fetchHistory() {
+    if (!auth.token) return;
+
+    try {
+        const response = await fetch('/api/measurements/history', {
+            headers: {
+                'Authorization': `Bearer ${auth.token}`
+            }
+        });
+
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            displayHistory(data.history);
+        }
+    } catch (error) {
+        console.error('Error fetching history:', error);
+    }
+}
+
+function displayHistory(history) {
+    if (!elements.historyList) return;
+
+    if (!history || history.length === 0) {
+        elements.historyList.innerHTML = '<div class="history-empty">No measurements yet.</div>';
+        elements.historySection.style.display = 'block';
+        return;
+    }
+
+    elements.historySection.style.display = 'block';
+    elements.historyList.innerHTML = '';
+
+    history.forEach(item => {
+        const date = new Date(item.created_at).toLocaleString();
+        const m = item.measurements;
+        const units = item.units === 'imperial' ? 'in' : 'cm';
+
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.innerHTML = `
+            <div class="history-info">
+                <div class="history-date">${date}</div>
+                <div class="history-summary">${item.gender.charAt(0).toUpperCase() + item.gender.slice(1)}, ${item.height} ${units}</div>
+            </div>
+            <div class="history-measurements">
+                <span>Chest: ${m.chest.toFixed(1)}${units}</span>
+                <span>Waist: ${m.waist.toFixed(1)}${units}</span>
+                <span>Hip: ${m.hip.toFixed(1)}${units}</span>
+            </div>
+        `;
+        
+        // Make history item clickable to reload results
+        historyItem.style.cursor = 'pointer';
+        historyItem.onclick = () => {
+            displayResults({
+                measurements: {
+                    ...m,
+                    units: item.units === 'imperial' ? 'inches' : 'cm'
+                },
+                front_landmarks: null // Landmarks not stored in history for now to save space
+            });
+            window.scrollTo({ top: elements.resultsSection.offsetTop - 100, behavior: 'smooth' });
+        };
+
+        elements.historyList.appendChild(historyItem);
+    });
 }
 
 // Initialize app

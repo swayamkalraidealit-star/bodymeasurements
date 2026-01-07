@@ -12,6 +12,10 @@ from app.services.pose_detector import PoseDetector
 from app.services.measurement_calculator import MeasurementCalculator
 from app.utils.image_processor import ImageProcessor
 from app.core.config import settings
+from app.core.dependencies import get_current_active_user
+from app.core.database import get_measurements_collection
+from app.models.models import User, UserMeasurementDB
+from fastapi import Depends
 import logging
 
 # Set up logging
@@ -36,7 +40,10 @@ async def health_check():
 
 
 @router.post("/calculate", response_model=MeasurementResponse)
-async def calculate_measurements(request: MeasurementRequest):
+async def calculate_measurements(
+    request: MeasurementRequest,
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Calculate body measurements from uploaded images.
     
@@ -154,6 +161,22 @@ async def calculate_measurements(request: MeasurementRequest):
         
         logger.info(f"Successfully calculated {len(measurements_dict)} measurements")
         
+        # Save to database
+        try:
+            measurements_collection = get_measurements_collection()
+            measurement_db = UserMeasurementDB(
+                user_id=current_user.id,
+                measurements=measurements_dict,
+                gender=request.gender,
+                height=request.calibration_height,
+                units=request.units
+            )
+            await measurements_collection.insert_one(measurement_db.model_dump(by_alias=True))
+            logger.info(f"Saved measurements for user {current_user.id}")
+        except Exception as e:
+            logger.error(f"Error saving measurements to database: {str(e)}")
+            # Don't fail the request if saving fails, but log it
+        
         return MeasurementResponse(
             success=True,
             measurements=measurements,
@@ -168,6 +191,29 @@ async def calculate_measurements(request: MeasurementRequest):
         raise
     except Exception as e:
         logger.error(f"Error calculating measurements: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@router.get("/history")
+async def get_measurement_history(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get measurement history for the current user.
+    """
+    try:
+        measurements_collection = get_measurements_collection()
+        cursor = measurements_collection.find({"user_id": current_user.id}).sort("created_at", -1)
+        history = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            history.append(doc)
+        return {"success": True, "history": history}
+    except Exception as e:
+        logger.error(f"Error fetching measurement history: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
