@@ -26,7 +26,7 @@ class PoseDetector:
         self.pose = self.mp_pose.Pose(
             static_image_mode=True,
             model_complexity=settings.mediapipe_model_complexity,
-            enable_segmentation=False,
+            enable_segmentation=True,
             min_detection_confidence=settings.mediapipe_min_detection_confidence,
         )
         self._initialized = True
@@ -64,7 +64,8 @@ class PoseDetector:
             'landmarks': landmarks,
             'confidence': avg_confidence,
             'image_width': image.shape[1],
-            'image_height': image.shape[0]
+            'image_height': image.shape[0],
+            'segmentation_mask': results.segmentation_mask if hasattr(results, 'segmentation_mask') else None
         }
     
     def get_landmark_coords(self, landmarks: List[Dict], index: int, image_width: int, image_height: int) -> Optional[tuple]:
